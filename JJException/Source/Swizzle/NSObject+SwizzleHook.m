@@ -35,8 +35,14 @@ void swizzleClassMethod(Class cls, SEL originSelector, SEL swizzleSelector){
     }
     Method originalMethod = class_getClassMethod(cls, originSelector);
     Method swizzledMethod = class_getClassMethod(cls, swizzleSelector);
+    if (!originalMethod || !swizzledMethod) {
+        return;
+    }
     
     Class metacls = objc_getMetaClass(NSStringFromClass(cls).UTF8String);
+    if (!metacls) {
+        return;
+    }
     if (class_addMethod(metacls,
                         originSelector,
                         method_getImplementation(swizzledMethod),
@@ -66,6 +72,9 @@ void swizzleInstanceMethod(Class cls, SEL originSelector, SEL swizzleSelector){
     /* if current class not exist selector, then get super*/
     Method originalMethod = class_getInstanceMethod(cls, originSelector);
     Method swizzledMethod = class_getInstanceMethod(cls, swizzleSelector);
+    if (!originalMethod || !swizzledMethod) {
+        return;
+    }
     
     /* add selector if not exist, implement append with method */
     if (class_addMethod(cls,
