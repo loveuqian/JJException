@@ -43,26 +43,20 @@ void swizzleClassMethod(Class cls, SEL originSelector, SEL swizzleSelector){
     if (!metacls) {
         return;
     }
-    if (class_addMethod(metacls,
+    IMP originalImplementation = method_getImplementation(originalMethod);
+    IMP swizzledImplementation = method_getImplementation(swizzledMethod);
+    const char *originalTypeEncoding = method_getTypeEncoding(originalMethod);
+    const char *swizzledTypeEncoding = method_getTypeEncoding(swizzledMethod);
+
+    // 先保存原实现，再替换原方法，避免并发调用命中递归的中间状态
+    class_replaceMethod(metacls,
+                        swizzleSelector,
+                        originalImplementation,
+                        originalTypeEncoding);
+    class_replaceMethod(metacls,
                         originSelector,
-                        method_getImplementation(swizzledMethod),
-                        method_getTypeEncoding(swizzledMethod)) ) {
-        /* swizzing super class method, added if not exist */
-        class_replaceMethod(metacls,
-                            swizzleSelector,
-                            method_getImplementation(originalMethod),
-                            method_getTypeEncoding(originalMethod));
-        
-    } else {
-        /* swizzleMethod maybe belong to super */
-        class_replaceMethod(metacls,
-                            swizzleSelector,
-                            class_replaceMethod(metacls,
-                                                originSelector,
-                                                method_getImplementation(swizzledMethod),
-                                                method_getTypeEncoding(swizzledMethod)),
-                            method_getTypeEncoding(originalMethod));
-    }
+                        swizzledImplementation,
+                        swizzledTypeEncoding);
 }
 
 void swizzleInstanceMethod(Class cls, SEL originSelector, SEL swizzleSelector){
@@ -75,29 +69,20 @@ void swizzleInstanceMethod(Class cls, SEL originSelector, SEL swizzleSelector){
     if (!originalMethod || !swizzledMethod) {
         return;
     }
-    
-    /* add selector if not exist, implement append with method */
-    if (class_addMethod(cls,
+    IMP originalImplementation = method_getImplementation(originalMethod);
+    IMP swizzledImplementation = method_getImplementation(swizzledMethod);
+    const char *originalTypeEncoding = method_getTypeEncoding(originalMethod);
+    const char *swizzledTypeEncoding = method_getTypeEncoding(swizzledMethod);
+
+    // 先保存原实现，再替换原方法，避免并发调用命中递归的中间状态
+    class_replaceMethod(cls,
+                        swizzleSelector,
+                        originalImplementation,
+                        originalTypeEncoding);
+    class_replaceMethod(cls,
                         originSelector,
-                        method_getImplementation(swizzledMethod),
-                        method_getTypeEncoding(swizzledMethod)) ) {
-        /* replace class instance method, added if selector not exist */
-        /* for class cluster , it always add new selector here */
-        class_replaceMethod(cls,
-                            swizzleSelector,
-                            method_getImplementation(originalMethod),
-                            method_getTypeEncoding(originalMethod));
-        
-    } else {
-        /* swizzleMethod maybe belong to super */
-        class_replaceMethod(cls,
-                            swizzleSelector,
-                            class_replaceMethod(cls,
-                                                originSelector,
-                                                method_getImplementation(swizzledMethod),
-                                                method_getTypeEncoding(swizzledMethod)),
-                            method_getTypeEncoding(originalMethod));
-    }
+                        swizzledImplementation,
+                        swizzledTypeEncoding);
 }
 
 // a class doesn't need dealloc swizzled if it or a superclass has been swizzled already
